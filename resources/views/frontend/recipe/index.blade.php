@@ -102,20 +102,11 @@
                         </select>
                     </div>
 
-                    <!-- LIVE average (excludes negatives) with its own selector -->
+                    <!-- LIVE average (excludes negatives) — dropdown removed -->
                     <div class="col-md-3">
                         <div class="stat-card">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="stat-title">Media margine</div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-light text-dark d-none" id="avgMarginCategoryBadge">Tutte</span>
-                                    <select id="avgCatSelect" class="form-select form-select-sm" style="min-width:140px">
-                                        <option value="">Tutte</option>
-                                        @foreach ($categories as $category)
-                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
                             </div>
                             <div class="stat-value mt-1">
                                 <span id="avgMarginValue">—</span><span>%</span>
@@ -144,7 +135,7 @@
                             @foreach ($recipes as $r)
                                 @php
                                     /*
-                                     * IMPORTANT: all per‑unit values (ingredient, labor, packaging, total)
+                                     * IMPORTANT: all per-unit values (ingredient, labor, packaging, total)
                                      * are recomputed live here from current data to avoid stale totals.
                                      */
 
@@ -216,7 +207,7 @@
                                         $unitPackCost = $pack;
                                     }
 
-                                    // 5) FINAL per‑unit total cost (LIVE)
+                                    // 5) FINAL per-unit total cost (LIVE)
                                     $unitTotalCost = round($unitIngCost + $unitLabCost + $unitPackCost, 2);
 
                                     // 6) Margin (per unit) & percentages against net selling price
@@ -393,42 +384,18 @@
                 }
             });
 
-            // -------- helpers for the Media-margine card (independent selector)
-            function getCardSelectedCategory() {
-                const $sel = $('#avgCatSelect');
-                return $sel.length ? $sel.val() : $('#categoryFilter').val();
-            }
-
-            function getCardSelectedCategoryText() {
-                const $sel = $('#avgCatSelect');
-                if ($sel.length) return $sel.find('option:selected').text() || 'Tutte';
-                const $tbl = $('#categoryFilter');
-                return $tbl.find('option:selected').text() || 'Tutte';
-            }
-
             // --- compute average of margin % over visible rows; exclude negatives
             function updateAvgMarginCard() {
-                const cardCatId = getCardSelectedCategory();
-                const allVisibleNodes = table.rows({
-                    filter: 'applied'
-                }).nodes().toArray();
+                const allVisibleNodes = table.rows({ filter: 'applied' }).nodes().toArray();
 
-                // if card has category selected, limit to that category (string compare)
-                const nodes = cardCatId ?
-                    allVisibleNodes.filter(r => (($(r).data('category') ?? '') + '') === (cardCatId + '')) :
-                    allVisibleNodes;
-
-                let sum = 0,
-                    count = 0;
-                nodes.forEach(r => {
+                let sum = 0, count = 0;
+                allVisibleNodes.forEach(r => {
                     const v = parseFloat($(r).attr('data-margin-pct'));
                     if (!isNaN(v) && v >= 0) {
                         sum += v;
                         count++;
                     }
                 });
-
-                $('#avgMarginCategoryBadge').text(getCardSelectedCategoryText());
 
                 if (count === 0) {
                     $('#avgMarginValue').text('—');
@@ -462,64 +429,32 @@
                 updateAvgMarginCard();
             });
 
-            // Recompute when the card’s own selector changes (does not redraw table)
-            $(document).on('change', '#avgCatSelect', updateAvgMarginCard);
-
-            // --- sort dropdown mapping
+            // Keep dropdown synced + keep avg up to date
             const mapToKey = (col, dir) => {
                 const map = {
-                    0: {
-                        asc: 'name_asc',
-                        desc: 'name_desc'
-                    },
-                    1: {
-                        asc: 'salesmode_asc',
-                        desc: 'salesmode_desc'
-                    },
-                    2: {
-                        asc: 'price_asc',
-                        desc: 'price_desc'
-                    },
-                    3: {
-                        asc: 'entrycost_asc',
-                        desc: 'entrycost_desc'
-                    },
-                    4: {
-                        asc: 'labourcost_asc',
-                        desc: 'labourcost_desc'
-                    },
-                    5: {
-                        asc: 'totalcost_asc',
-                        desc: 'totalcost_desc'
-                    },
-                    6: {
-                        asc: 'margin_asc',
-                        desc: 'margin_desc'
-                    }
+                    0: { asc: 'name_asc',       desc: 'name_desc' },
+                    1: { asc: 'salesmode_asc',  desc: 'salesmode_desc' },
+                    2: { asc: 'price_asc',      desc: 'price_desc' },
+                    3: { asc: 'entrycost_asc',  desc: 'entrycost_desc' },
+                    4: { asc: 'labourcost_asc', desc: 'labourcost_desc' },
+                    5: { asc: 'totalcost_asc',  desc: 'totalcost_desc' },
+                    6: { asc: 'margin_asc',     desc: 'margin_desc' }
                 };
                 return (map[col] && map[col][dir]) ? map[col][dir] : '';
             };
             const mapFromKey = (key) => {
                 const pairs = {
-                    'name_asc': [0, 'asc'],
-                    'name_desc': [0, 'desc'],
-                    'salesmode_asc': [1, 'asc'],
-                    'salesmode_desc': [1, 'desc'],
-                    'price_asc': [2, 'asc'],
-                    'price_desc': [2, 'desc'],
-                    'entrycost_asc': [3, 'asc'],
-                    'entrycost_desc': [3, 'desc'],
-                    'labourcost_asc': [4, 'asc'],
-                    'labourcost_desc': [4, 'desc'],
-                    'totalcost_asc': [5, 'asc'],
-                    'totalcost_desc': [5, 'desc'],
-                    'margin_asc': [6, 'asc'],
-                    'margin_desc': [6, 'desc']
+                    'name_asc': [0, 'asc'], 'name_desc': [0, 'desc'],
+                    'salesmode_asc': [1, 'asc'], 'salesmode_desc': [1, 'desc'],
+                    'price_asc': [2, 'asc'], 'price_desc': [2, 'desc'],
+                    'entrycost_asc': [3, 'asc'], 'entrycost_desc': [3, 'desc'],
+                    'labourcost_asc': [4, 'asc'], 'labourcost_desc': [4, 'desc'],
+                    'totalcost_asc': [5, 'asc'], 'totalcost_desc': [5, 'desc'],
+                    'margin_asc': [6, 'asc'], 'margin_desc': [6, 'desc']
                 };
                 return pairs[key] || null;
             };
 
-            // Keep dropdown synced + keep avg up to date
             const syncDropdownWithOrder = () => {
                 const ord = table.order();
                 if (ord && ord.length) {
