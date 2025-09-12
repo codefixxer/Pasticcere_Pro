@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Cost;
 use App\Models\User;
 use App\Models\Income;
+use App\Models\OpeningDay;
 use App\Models\CostCategory;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -187,13 +189,11 @@ class CostController extends Controller
             ->with('success', 'Costo eliminato con successo!');
     }
 
-    /**
-     * Dashboard showing cost/income summaries.
-     */
-    public function dashboard(Request $request)
+ public function dashboard(Request $request)
     {
         $user = Auth::user();
 
+        // Determine visible user ids (owner + children, or user + owner)
         if (is_null($user->created_by)) {
             $children = User::where('created_by', $user->id)->pluck('id');
             $visibleUserIds = $children->isEmpty()
@@ -207,7 +207,7 @@ class CostController extends Controller
         $month    = (int) $request->query('m', now()->month);
         $lastYear = $year - 1;
 
-        // Categories for filters/legends
+        // Categories (summary cards)
         $categories = CostCategory::with('user')
             ->where(function ($q) use ($visibleUserIds) {
                 $q->whereIn('user_id', $visibleUserIds)
@@ -216,12 +216,14 @@ class CostController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Available years selector
         $availableYears = Cost::whereIn('user_id', $visibleUserIds)
             ->selectRaw('YEAR(due_date) as year')
             ->distinct()
             ->orderByDesc('year')
             ->pluck('year');
 
+        // Category totals for selected month
         $raw = Cost::whereIn('user_id', $visibleUserIds)
             ->whereYear('due_date', $year)
             ->whereMonth('due_date', $month)
@@ -229,6 +231,7 @@ class CostController extends Controller
             ->groupBy('category_id')
             ->pluck('total','category_id');
 
+        // Costs by month (this & last year)
         $costsThisYear = Cost::whereIn('user_id', $visibleUserIds)
             ->whereYear('due_date', $year)
             ->selectRaw('MONTH(due_date) as month, SUM(amount) as total')
@@ -244,6 +247,7 @@ class CostController extends Controller
         $totalCostYear     = $costsThisYear->sum();
         $totalCostLastYear = $costsLastYear->sum();
 
+        // Incomes + Net by month
         $incomeThisYearMonthly = [];
         $incomeLastYearMonthly = [];
         $netByMonth            = [];
@@ -257,9 +261,9 @@ class CostController extends Controller
                 ->whereYear('date', $lastYear)->whereMonth('date', $m)
                 ->sum('amount');
 
-            $incomeThisYearMonthly[$m] = $i1;
-            $incomeLastYearMonthly[$m] = $i2;
-            $netByMonth[$m]            = $i1 - ($costsThisYear[$m] ?? 0);
+            $incomeThisYearMonthly[$m] = (float) $i1;
+            $incomeLastYearMonthly[$m] = (float) $i2;
+            $netByMonth[$m]            = (float) $i1 - (float) ($costsThisYear[$m] ?? 0);
         }
 
         $totalIncomeYear     = array_sum($incomeThisYearMonthly);
@@ -267,9 +271,9 @@ class CostController extends Controller
         $netYear             = $totalIncomeYear - $totalCostYear;
         $netLastYear         = $totalIncomeLastYear - $totalCostLastYear;
 
-        $bestNet   = max($netByMonth);
-        $worstNet  = min($netByMonth);
-        $bestMonth = array_search($bestNet, $netByMonth, true);
+        $bestNet    = max($netByMonth);
+        $worstNet   = min($netByMonth);
+        $bestMonth  = array_search($bestNet, $netByMonth, true);
         $worstMonth = array_search($worstNet, $netByMonth, true);
 
         if (count(array_unique($netByMonth)) === 1) {
@@ -280,6 +284,34 @@ class CostController extends Controller
         $incomeThisMonth    = $incomeThisYearMonthly[$month] ?? 0;
         $incomeLastYearSame = $incomeLastYearMonthly[$month] ?? 0;
 
+        // ===== Opening Days (editable) + BEP (€/day) additions =====
+        // Per-user opening days (edit & persist)
+        $openingDaysThisYear = OpeningDay::where('user_id', $user->id)
+            ->where('year', $year)
+            ->pluck('days', 'month');
+
+        $openingDaysLastYear = OpeningDay::where('user_id', $user->id)
+            ->where('year', $lastYear)
+            ->pluck('days', 'month');
+
+        // Precompute BEP per month for initial render
+        $bepThisYear = [];
+        $bepLastYear = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $d1 = (int) ($openingDaysThisYear[$m] ?? 0);
+            $d2 = (int) ($openingDaysLastYear[$m] ?? 0);
+            $c1 = (float) ($costsThisYear[$m] ?? 0);
+            $c2 = (float) ($costsLastYear[$m] ?? 0);
+            $bepThisYear[$m] = $d1 > 0 ? $c1 / $d1 : 0.0;
+            $bepLastYear[$m] = $d2 > 0 ? $c2 / $d2 : 0.0;
+        }
+
+        // Totals row: sum of days + overall BEP (Total Cost / Total Opening Days)
+        $sumDaysThisYear     = array_sum($openingDaysThisYear->toArray());
+        $sumDaysLastYear     = array_sum($openingDaysLastYear->toArray());
+        $overallBepThisYear  = $sumDaysThisYear > 0 ? ($totalCostYear / $sumDaysThisYear) : 0.0;
+        $overallBepLastYear  = $sumDaysLastYear > 0 ? ($totalCostLastYear / $sumDaysLastYear) : 0.0;
+
         return view('frontend.costs.dashboard', compact(
             'availableYears','year','month','lastYear','categories',
             'raw','incomeThisMonth','incomeLastYearSame',
@@ -287,7 +319,37 @@ class CostController extends Controller
             'incomeThisYearMonthly','incomeLastYearMonthly',
             'totalCostYear','totalIncomeYear','netYear',
             'totalCostLastYear','totalIncomeLastYear','netLastYear',
-            'bestMonth','bestNet','worstMonth','worstNet'
+            'bestMonth','bestNet','worstMonth','worstNet',
+            // opening days + BEP
+            'openingDaysThisYear','openingDaysLastYear',
+            'bepThisYear','bepLastYear',
+            'sumDaysThisYear','sumDaysLastYear',
+            'overallBepThisYear','overallBepLastYear'
         ));
+    }
+
+    /**
+     * AJAX: save one month of opening days.
+     */
+    public function saveOpeningDays(Request $request)
+    {
+        $user = Auth::user();
+
+        $data = $request->validate([
+            'year'  => ['required','integer','min:2000','max:2100'],
+            'month' => ['required','integer','between:1,12'],
+            'days'  => ['nullable','integer','between:0,31'],
+        ]);
+
+        OpeningDay::updateOrCreate(
+            [
+                'user_id' => $user->id,
+                'year'    => (int) $data['year'],
+                'month'   => (int) $data['month'],
+            ],
+            ['days' => (int) ($data['days'] ?? 0)]
+        );
+
+        return response()->json(['ok' => true]);
     }
 }

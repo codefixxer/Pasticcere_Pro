@@ -1225,40 +1225,8 @@
                 </form>
                 {{-- ===== FORM END ===== --}}
 
-                {{-- ===== Quick Tips banner ===== --}}
-                <section class="mini-banner reveal" aria-label="Tutorials e risorse">
-                    <div class="mini-banner-head d-flex align-items-center mb-2">
-                        <span class="banner-kicker">Nuovo</span>
-                        <h6 class="banner-title ms-2">Consigli rapidi &amp; Tutorial</h6>
-                        <a href="#" class="ms-auto banner-cta">Vedi tutti <i
-                                class="bi bi-arrow-right-short"></i></a>
-                    </div>
-                    <button class="scroll-arrow left" type="button" aria-label="Scorri a sinistra"><i
-                            class="bi bi-chevron-left"></i></button>
-                    <button class="scroll-arrow right" type="button" aria-label="Scorri a destra"><i
-                            class="bi bi-chevron-right"></i></button>
+            @include('frontend.recipe.quick-actions')
 
-                    <div class="scroller" tabindex="0">
-                        <a href="#sec-details" class="chip chip--cta js-scrollto"><span class="icon-badge"><i
-                                    class="bi bi-play-circle"></i></span>Video: ricetta perfetta<span
-                                class="shine"></span></a>
-                        <a href="#sec-expense" class="chip js-scrollto"><span class="icon-badge"><i
-                                    class="bi bi-currency-euro"></i></span>Costi al kg (guida)<span
-                                class="shine"></span></a>
-                        <a href="#sec-sell" class="chip js-scrollto"><span class="icon-badge"><i
-                                    class="bi bi-bag-check"></i></span>Prezzi di vendita: best practice<span
-                                class="shine"></span></a>
-                        <a href="#sec-expense" class="chip chip--hot js-scrollto"><span class="icon-badge"><i
-                                    class="bi bi-graph-up-arrow"></i></span>Margini &amp; IVA spiegati<span
-                                class="ping"></span><span class="shine"></span></a>
-                        <a href="#sec-labor" class="chip js-scrollto"><span class="icon-badge"><i
-                                    class="bi bi-speedometer2"></i></span>Ottimizza manodopera<span
-                                class="shine"></span></a>
-                        <a href="#sec-ingredients" class="chip js-scrollto"><span class="icon-badge"><i
-                                    class="bi bi-journal-text"></i></span>Template ingredienti<span
-                                class="shine"></span></a>
-                    </div>
-                </section>
             </div>
 
             {{-- ===== RIGHT RAIL ===== --}}

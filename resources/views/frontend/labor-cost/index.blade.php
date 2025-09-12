@@ -312,9 +312,9 @@
       </div>
     </div>
   </div>
+@include('frontend.labor-cost.quick-help')
 
 </div>
-@endsection
 
 <style>
   .btn-gold-blue {
@@ -332,6 +332,8 @@
     opacity: 1;
   }
 </style>
+@endsection
+
 
 @section('scripts')
 <script>

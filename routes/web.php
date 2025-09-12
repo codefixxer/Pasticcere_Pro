@@ -157,6 +157,9 @@
      Route::get('costs-comparison', [CostController::class, 'dashboard'])
           ->name('costs.dashboard')
           ->middleware('can:cost comparison');
+          Route::post('/costs/opening-days/save', [CostController::class, 'saveOpeningDays'])
+    ->middleware(['auth'])
+    ->name('costs.opening-days.save');
 
      // Departments
      Route::resource('departments', DepartmentController::class)
