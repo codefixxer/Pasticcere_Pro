@@ -3,7 +3,18 @@
 @section('title', 'Pasticcere Pro | Cruscotto')
 
 @section('content')
-
+    <style>
+        /* Force donut labels, datalabels and legends to black (fallback) */
+        .apexcharts-legend-text,
+        .apexcharts-datalabel text,
+        .apexcharts-datalabel-value,
+        .apexcharts-text.apexcharts-datalabel-value,
+        .apexcharts-text.apexcharts-datalabel-label,
+        .apexcharts-legend .apexcharts-legend-text {
+            fill: #000 !important;
+            color: #000 !important;
+        }
+    </style>
     {{-- Beautiful Welcome Banner --}}
     <div class="col-12 mb-4">
         <div class="alert text-center fw-bold fs-4 rounded-pill" style="background-color: #041930; color: #e2ae76;">
@@ -75,7 +86,7 @@
                 box-shadow: 0 .5rem 1rem rgba(13, 110, 253, .15)
             }
         </style>
-  <div class="row g-4">
+        <div class="row g-4">
 
             {{-- resources/views/dashboard.blade.php --}}
             <div class="col-12">
@@ -272,7 +283,7 @@
                         </div>
 
                         <div class="table-responsive mt-3">
-                            <table  data-page-length="25"class="table table-sm align-middle mb-0">
+                            <table data-page-length="25"class="table table-sm align-middle mb-0">
                                 <thead class="text-secondary">
                                     <tr>
                                         <th>Categoria</th>
@@ -284,7 +295,8 @@
                                     @forelse ($categoryAvgTop as $row)
                                         <tr>
                                             <td class="py-2 text-break">{{ $row->name }}</td>
-                                            <td class="text-end py-2">{{ number_format($row->avg_margin_pos ?? 0, 2) }}</td>
+                                            <td class="text-end py-2">{{ number_format($row->avg_margin_pos ?? 0, 2) }}
+                                            </td>
                                             <td class="text-end py-2">{{ $row->pos_cnt }}</td>
                                         </tr>
                                     @empty
@@ -502,7 +514,7 @@
                     </div>
                     <div class="card-body p-3 p-md-4">
                         <div class="table-responsive mb-3">
-                            <table  data-page-length="25"class="table table-hover mb-0" id="soldTable">
+                            <table data-page-length="25"class="table table-hover mb-0" id="soldTable">
                                 <thead>
                                     <tr>
                                         <th>Prodotto</th>
@@ -545,7 +557,7 @@
                     </div>
                     <div class="card-body p-3 p-md-4">
                         <div class="table-responsive mb-3">
-                            <table  data-page-length="25"class="table table-hover mb-0" id="wastedTable">
+                            <table data-page-length="25"class="table table-hover mb-0" id="wastedTable">
                                 <thead>
                                     <tr>
                                         <th>Prodotto</th>
@@ -579,203 +591,246 @@
                 </div>
             </div>
 
-       <div class="my-20 col-12 col-sm-6 col-xxl-4">
-    <div class="card card-elevated h-100">
-        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-            <h6 class="fw-semibold mb-0">Produzione per Pasticcere</h6>
-            <div class="row g-2 align-items-center">
-                <div class="col-6 col-md-auto">
-                    <input type="date" id="chefStart" class="form-control form-control-sm" />
-                </div>
-                <div class="col-6 col-md-auto">
-                    <input type="date" id="chefEnd" class="form-control form-control-sm" />
-                </div>
-                <div class="col-12 col-md-auto">
-                    <button id="chefFilter" class="btn btn-sm btn-primary w-100 w-md-auto btn-lift">
-                        <i class="bi bi-funnel"></i>
-                    </button>
+            <div class="my-20 col-12 col-sm-6 col-xxl-4">
+                <div class="card card-elevated h-100">
+                    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <h6 class="fw-semibold mb-0">Produzione per Pasticcere</h6>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6 col-md-auto">
+                                <input type="date" id="chefStart" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-6 col-md-auto">
+                                <input type="date" id="chefEnd" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-auto">
+                                <button id="chefFilter" class="btn btn-sm btn-primary w-100 w-md-auto btn-lift">
+                                    <i class="bi bi-funnel"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="chefProdChart" class="chart-min-260"></div>
+
+                        {{-- keep the original Larapex container so no code is “missed”, but hide it to prevent double charts --}}
+                        <div class="visually-hidden">
+                            {!! $chefChart->container() !!}
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="card-body">
-            <div id="chefProdChart" class="chart-min-260"></div>
 
-            {{-- keep the original Larapex container so no code is “missed”, but hide it to prevent double charts --}}
-            <div class="visually-hidden">
-                {!! $chefChart->container() !!}
+
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const rows = @json($fullChefData ?? []);
+                    const data = rows
+                        .map(r => ({
+                            date: r.date,
+                            chef: r.chef_name || 'Sconosciuto',
+                            qty: Number(r.qty) || 0
+                        }))
+                        .sort((a, b) => a.date.localeCompare(b.date));
+
+                    function groupByChef(start, end) {
+                        const s = new Date(start),
+                            e = new Date(end);
+                        const agg = {};
+                        data.forEach(x => {
+                            const d = new Date(x.date);
+                            if (!isNaN(d) && d >= s && d <= e) {
+                                agg[x.chef] = (agg[x.chef] || 0) + x.qty;
+                            }
+                        });
+                        const ordered = Object.entries(agg).sort((a, b) => b[1] - a[1]); // highest first
+                        return {
+                            labels: ordered.map(([name]) => name),
+                            series: ordered.map(([, val]) => val)
+                        };
+                    }
+
+                    function renderChefChart(start, end) {
+                        const {
+                            labels,
+                            series
+                        } = groupByChef(start, end);
+
+                        if (window.chefChartJS) {
+                            window.chefChartJS.destroy();
+                            window.chefChartJS = null;
+                        }
+
+                        if (!series.length) {
+                            document.querySelector('#chefProdChart').innerHTML =
+                                '<div class="text-muted py-3">Nessun dato per l\'intervallo selezionato.</div>';
+                            return;
+                        }
+
+                        window.chefChartJS = new ApexCharts(document.querySelector('#chefProdChart'), {
+                            chart: {
+                                type: 'bar',
+                                height: 320
+                            },
+                            series: [{
+                                name: 'Unità prodotte',
+                                data: series
+                            }],
+                            xaxis: {
+                                categories: labels,
+                                labels: {
+                                    rotate: -45,
+                                    trim: true
+                                }
+                            },
+                            dataLabels: {
+                                enabled: false
+                            },
+                            plotOptions: {
+                                bar: {
+                                    borderRadius: 4,
+                                    columnWidth: '60%'
+                                }
+                            },
+                            tooltip: {
+                                y: {
+                                    formatter: v => v.toLocaleString()
+                                }
+                            },
+                            legend: {
+                                show: false
+                            }
+                        });
+                        window.chefChartJS.render();
+                    }
+
+                    const defMin = data.length ? data[0].date : new Date().toISOString().slice(0, 10);
+                    const defMax = data.length ? data[data.length - 1].date : defMin;
+
+                    const $s = document.getElementById('chefStart');
+                    const $e = document.getElementById('chefEnd');
+                    const $b = document.getElementById('chefFilter');
+
+                    if ($s && $e) {
+                        $s.value = defMin;
+                        $e.value = defMax;
+                        renderChefChart(defMin, defMax);
+                        if ($b) {
+                            $b.addEventListener('click', () => {
+                                const s = $s.value,
+                                    e = $e.value;
+                                if (s && e) renderChefChart(s, e);
+                            });
+                        }
+                    }
+                });
+            </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            {{-- Returns vs. Restocks (Larapex donut) --}}
+            <div class="col-12 col-sm-6 col-xxl-4">
+                <div class="card card-elevated h-100">
+                    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                        <h6 class="fw-semibold mb-0">Resi vs Rifornimenti</h6>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-6 col-md-auto">
+                                <input type="date" id="retStart" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-6 col-md-auto">
+                                <input type="date" id="retEnd" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-md-auto">
+                                <button type="button" id="retFilter"
+                                    class="btn btn-sm btn-primary w-100 w-md-auto btn-lift">
+                                    <i class="bi bi-funnel"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-body">
+                        <p class="mb-1">Totale Fornito: <strong>{{ number_format($totalSupplied) }}</strong></p>
+                        <p class="mb-3">Totale Resi: <strong>{{ number_format($totalReturned) }}</strong></p>
+
+                        {{-- Larapex container (same pattern as the other charts) --}}
+                        <div style="min-height:260px">
+                            {!! $returnRateChart->container() !!}
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-</div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    try {
+                        const id = @json($returnRateChart->id); // Larapex container id
+                        const supplied = Number({{ (int) $totalSupplied }});
+                        const returned = Number({{ (int) $totalReturned }});
+                        const restocked = Math.max(0, supplied - returned);
+                        const el = document.getElementById(id);
 
+                        // if Larapex didn't render anything, draw it manually
+                        if (el && el.innerHTML.trim() === '') {
+                            const chart = new ApexCharts(el, {
+                                chart: {
+                                    type: 'donut',
+                                    height: 300
+                                },
+                                series: [returned, restocked],
+                                labels: ['Resi', 'Riforniti'],
+                                legend: {
+                                    position: 'bottom'
+                                },
+                                plotOptions: {
+                                    pie: {
+                                        donut: {
+                                            size: '70%',
+                                            labels: {
+                                                show: true,
+                                                total: {
+                                                    show: true,
+                                                    label: 'Fornito',
+                                                    formatter: () => supplied.toLocaleString()
+                                                }
+                                            }
+                                        }
+                                    }
+                                },
+                                title: {
+                                    text: 'Resi vs Rifornimenti'
+                                },
+                                tooltip: {
+                                    y: {
+                                        formatter: v => v.toLocaleString()
+                                    }
+                                }
+                            });
+                            chart.render();
+                        }
+                    } catch (e) {
+                        console.error('Return/Restock chart fallback error:', e);
+                    }
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const rows = @json($fullChefData ?? []);
-    const data = rows
-        .map(r => ({ date: r.date, chef: r.chef_name || 'Sconosciuto', qty: Number(r.qty) || 0 }))
-        .sort((a, b) => a.date.localeCompare(b.date));
-
-    function groupByChef(start, end) {
-        const s = new Date(start), e = new Date(end);
-        const agg = {};
-        data.forEach(x => {
-            const d = new Date(x.date);
-            if (!isNaN(d) && d >= s && d <= e) {
-                agg[x.chef] = (agg[x.chef] || 0) + x.qty;
-            }
-        });
-        const ordered = Object.entries(agg).sort((a, b) => b[1] - a[1]); // highest first
-        return {
-            labels: ordered.map(([name]) => name),
-            series: ordered.map(([, val]) => val)
-        };
-    }
-
-    function renderChefChart(start, end) {
-        const { labels, series } = groupByChef(start, end);
-
-        if (window.chefChartJS) {
-            window.chefChartJS.destroy();
-            window.chefChartJS = null;
-        }
-
-        if (!series.length) {
-            document.querySelector('#chefProdChart').innerHTML =
-                '<div class="text-muted py-3">Nessun dato per l\'intervallo selezionato.</div>';
-            return;
-        }
-
-        window.chefChartJS = new ApexCharts(document.querySelector('#chefProdChart'), {
-            chart: { type: 'bar', height: 320 },
-            series: [{ name: 'Unità prodotte', data: series }],
-            xaxis: {
-                categories: labels,
-                labels: { rotate: -45, trim: true }
-            },
-            dataLabels: { enabled: false },
-            plotOptions: { bar: { borderRadius: 4, columnWidth: '60%' } },
-            tooltip: { y: { formatter: v => v.toLocaleString() } },
-            legend: { show: false }
-        });
-        window.chefChartJS.render();
-    }
-
-    const defMin = data.length ? data[0].date : new Date().toISOString().slice(0, 10);
-    const defMax = data.length ? data[data.length - 1].date : defMin;
-
-    const $s = document.getElementById('chefStart');
-    const $e = document.getElementById('chefEnd');
-    const $b = document.getElementById('chefFilter');
-
-    if ($s && $e) {
-        $s.value = defMin;
-        $e.value = defMax;
-        renderChefChart(defMin, defMax);
-        if ($b) {
-            $b.addEventListener('click', () => {
-                const s = $s.value, e = $e.value;
-                if (s && e) renderChefChart(s, e);
-            });
-        }
-    }
-});
-</script>
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-{{-- Returns vs. Restocks (Larapex donut) --}}
-<div class="col-12 col-sm-6 col-xxl-4">
-  <div class="card card-elevated h-100">
-    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
-      <h6 class="fw-semibold mb-0">Resi vs Rifornimenti</h6>
-      <div class="row g-2 align-items-center">
-        <div class="col-6 col-md-auto">
-          <input type="date" id="retStart" class="form-control form-control-sm"/>
-        </div>
-        <div class="col-6 col-md-auto">
-          <input type="date" id="retEnd" class="form-control form-control-sm"/>
-        </div>
-        <div class="col-12 col-md-auto">
-          <button type="button" id="retFilter" class="btn btn-sm btn-primary w-100 w-md-auto btn-lift">
-            <i class="bi bi-funnel"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card-body">
-      <p class="mb-1">Totale Fornito: <strong>{{ number_format($totalSupplied) }}</strong></p>
-      <p class="mb-3">Totale Resi: <strong>{{ number_format($totalReturned) }}</strong></p>
-
-      {{-- Larapex container (same pattern as the other charts) --}}
-      <div style="min-height:260px">
-        {!! $returnRateChart->container() !!}
-      </div>
-    </div>
-  </div>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  try {
-    const id = @json($returnRateChart->id);               // Larapex container id
-    const supplied = Number({{ (int)$totalSupplied }});
-    const returned = Number({{ (int)$totalReturned }});
-    const restocked = Math.max(0, supplied - returned);
-    const el = document.getElementById(id);
-
-    // if Larapex didn't render anything, draw it manually
-    if (el && el.innerHTML.trim() === '') {
-      const chart = new ApexCharts(el, {
-        chart: { type: 'donut', height: 300 },
-        series: [returned, restocked],
-        labels: ['Resi', 'Riforniti'],
-        legend: { position: 'bottom' },
-        plotOptions: {
-          pie: {
-            donut: {
-              size: '70%',
-              labels: {
-                show: true,
-                total: {
-                  show: true,
-                  label: 'Fornito',
-                  formatter: () => supplied.toLocaleString()
-                }
-              }
-            }
-          }
-        },
-        title: { text: 'Resi vs Rifornimenti' },
-        tooltip: { y: { formatter: v => v.toLocaleString() } }
-      });
-      chart.render();
-    }
-  } catch (e) {
-    console.error('Return/Restock chart fallback error:', e);
-  }
-
-  // prevent accidental form submit on the small filter UI
-  document.getElementById('retFilter')?.addEventListener('click', e => e.preventDefault());
-});
-</script>
+                    // prevent accidental form submit on the small filter UI
+                    document.getElementById('retFilter')?.addEventListener('click', e => e.preventDefault());
+                });
+            </script>
 
 
 
@@ -831,7 +886,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <!-- ====================== (KEEPING EVERY OTHER ORIGINAL BLOCK) ====================== -->
 
         <!-- ====================== KPI CARDS (kept intact) ====================== -->
-      
+
 
         <!-- ====================== POLISH CSS (visual only; responsiveness handled by Bootstrap) ====================== -->
 
@@ -839,9 +894,9 @@ document.addEventListener('DOMContentLoaded', function () {
         {{-- resources/views/dashboard.blade.php --}}
         <div class="row g-4 mt-14" style="margin-top: 1vw">
 
-      
 
-      
+
+
             {{-- Sprechi + Costi side-by-side --}}
             <div class="col-12">
                 <div class="row row-cols-1 row-cols-lg-2 g-4 align-items-stretch">
@@ -1035,47 +1090,60 @@ document.addEventListener('DOMContentLoaded', function () {
     {!! $chefChart->script() !!}
     {!! $prodWasteChart->script() !!}
     {{-- {!! $costCategoryChart->script() !!} --}}
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-  const supplied = Number({{ (int) $totalSupplied }});
-  const returned = Number({{ (int) $totalReturned }});
-  const used     = Math.max(0, supplied - returned);
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const supplied = Number({{ (int) $totalSupplied }});
+            const returned = Number({{ (int) $totalReturned }});
+            const used = Math.max(0, supplied - returned);
 
-  const el = document.querySelector('#retRateChart');
-  if (!el) return;
+            const el = document.querySelector('#retRateChart');
+            if (!el) return;
 
-  if (window.retRateChart) { window.retRateChart.destroy(); }
-
-  window.retRateChart = new ApexCharts(el, {
-    chart: { type: 'donut', height: 300 },
-    labels: ['Resi', 'Utilizzati'],
-    series: [returned, used],
-    legend: { position: 'bottom' },
-    tooltip: { y: { formatter: v => v.toLocaleString() } },
-    plotOptions: {
-      pie: {
-        donut: {
-          size: '70%',
-          labels: {
-            show: true,
-            total: {
-              show: true,
-              label: 'Fornito',
-              formatter: () => supplied.toLocaleString()
+            if (window.retRateChart) {
+                window.retRateChart.destroy();
             }
-          }
-        }
-      }
-    },
-    title: { text: 'Resi vs. Utilizzo' }
-  });
-  window.retRateChart.render();
 
-  // (Optional) prevent page reload if user clicks the filter button now
-  const btn = document.getElementById('retFilter');
-  if (btn) btn.addEventListener('click', e => e.preventDefault());
-});
-</script>
+            window.retRateChart = new ApexCharts(el, {
+                chart: {
+                    type: 'donut',
+                    height: 300
+                },
+                labels: ['Resi', 'Utilizzati'],
+                series: [returned, used],
+                legend: {
+                    position: 'bottom'
+                },
+                tooltip: {
+                    y: {
+                        formatter: v => v.toLocaleString()
+                    }
+                },
+                plotOptions: {
+                    pie: {
+                        donut: {
+                            size: '70%',
+                            labels: {
+                                show: true,
+                                total: {
+                                    show: true,
+                                    label: 'Fornito',
+                                    formatter: () => supplied.toLocaleString()
+                                }
+                            }
+                        }
+                    }
+                },
+                title: {
+                    text: 'Resi vs. Utilizzo'
+                }
+            });
+            window.retRateChart.render();
+
+            // (Optional) prevent page reload if user clicks the filter button now
+            const btn = document.getElementById('retFilter');
+            if (btn) btn.addEventListener('click', e => e.preventDefault());
+        });
+    </script>
     {{-- 💰 Incassi per Categoria (donut) – with date filters --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -1130,7 +1198,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         '<div class="text-muted py-3">Nessun dato per l\'intervallo selezionato.</div>';
                     return;
                 }
-
                 window.revChart = new ApexCharts(document.querySelector("#revCategoryChart"), {
                     chart: {
                         type: 'donut',
@@ -1139,19 +1206,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     series,
                     labels,
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            colors: '#000'
+                        } // legend text black
                     },
                     tooltip: {
                         y: {
                             formatter: v => `€${v.toLocaleString()}`
                         }
                     },
+
+                    // data labels inside slices (value + percent)
                     dataLabels: {
                         formatter: (percent, opts) => {
                             const val = opts.w.config.series[opts.seriesIndex];
                             return `${val.toLocaleString()}€ (${percent.toFixed(1)}%)`;
+                        },
+                        style: {
+                            colors: ['#000'] // force black
                         }
                     },
+
                     plotOptions: {
                         pie: {
                             donut: {
@@ -1159,23 +1235,38 @@ document.addEventListener('DOMContentLoaded', function () {
                                 labels: {
                                     show: true,
                                     name: {
-                                        show: true
+                                        show: true,
+                                        style: {
+                                            color: '#000',
+                                            fontSize: '13px'
+                                        }
                                     },
                                     value: {
                                         show: true,
+                                        style: {
+                                            color: '#000',
+                                            fontSize: '14px',
+                                            fontWeight: '600'
+                                        },
                                         formatter: val => `€${Number(val).toLocaleString()}`
                                     },
                                     total: {
                                         show: true,
                                         label: 'Total',
                                         formatter: () =>
-                                            `€${total.toLocaleString(undefined,{minimumFractionDigits:2})}`
+                                            `€${total.toLocaleString(undefined,{minimumFractionDigits:2})}`,
+                                        style: {
+                                            color: '#000',
+                                            fontSize: '16px',
+                                            fontWeight: '700'
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 });
+
                 window.revChart.render();
             }
 
@@ -1260,13 +1351,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     series,
                     labels,
                     legend: {
-                        position: 'right'
+                        position: 'right',
+                        labels: {
+                            colors: '#000'
+                        } // legend text black
                     },
                     tooltip: {
                         y: {
                             formatter: val => '€ ' + Number(val).toFixed(2)
                         }
                     },
+
+                    dataLabels: {
+                        formatter: (percent, opts) => {
+                            const val = opts.w.config.series[opts.seriesIndex];
+                            return `€ ${Number(val).toFixed(2)} (${percent.toFixed(1)}%)`;
+                        },
+                        style: {
+                            colors: ['#000'] // <-- black
+                        }
+                    },
+
                     plotOptions: {
                         pie: {
                             donut: {
@@ -1276,16 +1381,28 @@ document.addEventListener('DOMContentLoaded', function () {
                                     total: {
                                         show: true,
                                         label: 'Totale',
-                                        formatter: () => '€ ' + total.toFixed(2)
+                                        formatter: () => '€ ' + total.toFixed(2),
+                                        style: {
+                                            color: '#000'
+                                        } // total color
                                     },
                                     value: {
-                                        formatter: val => '€ ' + Number(val).toFixed(2)
+                                        formatter: val => '€ ' + Number(val).toFixed(2),
+                                        style: {
+                                            color: '#000'
+                                        }
+                                    },
+                                    name: {
+                                        style: {
+                                            color: '#000'
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 });
+
                 window.costCatChart.render();
             }
 
@@ -1420,7 +1537,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
-     
+
         document.addEventListener('DOMContentLoaded', function() {
             const fullData = @json($fullMonthlyData ?? []);
             const $barEl = document.querySelector('#barChart');
@@ -1468,7 +1585,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
-    
+
         document.addEventListener('DOMContentLoaded', function() {
             const fullSold = @json($fullSoldData ?? []); // [{recipe_name, sold, date}]
             const fullWasted = @json($fullWastedData ?? []); // [{recipe_name, waste, date}]
@@ -1551,152 +1668,161 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
-    
-        document.addEventListener('DOMContentLoaded', function() {
-            const costs = @json($fullCostData ?? []);
-            const incomes = @json($fullIncomeData ?? []);
 
-            const CATS = ['Materie prime', 'Stipendi + TFR', 'Affitto', 'Energia elettrica', 'Altri costi'];
-            const baseColors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0'];
-            const zeroColor = '#e0e0e0';
+     // === Incidenza Costi vs Ricavi — single source of truth ===
+document.addEventListener('DOMContentLoaded', function () {
+  const costs   = @json($fullCostData ?? []);   // [{date, amount, category}]
+  const incomes = @json($fullIncomeData ?? []); // [{date, amount, category}]
 
-            const toMs = d => new Date(d).getTime();
-            const sanitize = series => series.map(v => v === 0 ? 0.001 : v);
+  const CATS       = ['Materie prime', 'Stipendi + TFR', 'Affitto', 'Energia elettrica', 'Altri costi'];
+  const baseColors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0'];
+  const zeroColor  = '#e0e0e0';
 
-            function calcIncidence(start, end) {
-                const s = toMs(start),
-                    e = toMs(end);
-                const fC = costs.filter(x => {
-                    const m = toMs(x.date);
-                    return m >= s && m <= e;
-                });
-                const fI = incomes.filter(x => {
-                    const m = toMs(x.date);
-                    return m >= s && m <= e;
-                });
+  const $incStart = document.getElementById('incStart');
+  const $incEnd   = document.getElementById('incEnd');
+  const $incBtn   = document.getElementById('incFilter');
+  const $el       = document.querySelector('#incomeCostDonut');
 
-                const totalInc = fI.reduce((sum, i) => sum + (Number(i.amount) || 0), 0);
-                const sums = Object.fromEntries(CATS.map(c => [c, 0]));
+  // income category dropdown (optional, keeps existing behavior)
+  let $incomeSel = document.getElementById('incIncomeCategory');
+  if (!$incomeSel) {
+    $incomeSel = document.createElement('select');
+    $incomeSel.id = 'incIncomeCategory';
+    $incomeSel.className = 'form-select form-select-sm';
+    const wrap = document.createElement('div');
+    wrap.className = 'col-12 col-md-auto';
+    wrap.appendChild($incomeSel);
+    const row = $incBtn && $incBtn.closest('.row');
+    if (row) row.insertBefore(wrap, $incBtn.closest('.col-12') || row.lastChild);
+  }
 
-                fC.forEach(c => {
-                    const cat = (c.category || '').toLowerCase();
-                    const amt = Number(c.amount) || 0;
-                    if (cat.includes('materie prime') || cat.includes('raw materials')) sums[
-                        'Materie prime'] += amt;
-                    else if (cat.includes('stipendi') || cat.includes('tfr') || cat.includes('salary'))
-                        sums['Stipendi + TFR'] += amt;
-                    else if (cat.includes('affitto')) sums['Affitto'] += amt;
-                    else if (cat.includes('energia elettrica') || cat.includes('electricity')) sums[
-                        'Energia elettrica'] += amt;
-                    else sums['Altri costi'] += amt;
-                });
+  const catsIncome = Array.from(new Set(incomes.map(i => (i.category || 'Senza categoria').trim()))).sort();
+  $incomeSel.innerHTML = ['<option value="__all__">Tutte le entrate</option>']
+    .concat(catsIncome.map(c => `<option value="${String(c).replace(/"/g,'&quot;')}">${String(c).replace(/</g,'&lt;')}</option>`))
+    .join('');
 
-                const sumCosts = Object.values(sums).reduce((a, b) => a + b, 0);
-                const net = totalInc - sumCosts;
-                return {
-                    totalInc,
-                    sums,
-                    net
-                };
+  const toMs = d => new Date(d).getTime();
+
+  function sumIncome(start, end, cat) {
+    const s = toMs(start), e = toMs(end);
+    let tot = 0;
+    for (const i of incomes) {
+      const m = toMs(i.date); if (isNaN(m) || m < s || m > e) continue;
+      const label = (i.category || 'Senza categoria').trim();
+      if (cat && cat !== '__all__' && label !== cat) continue;
+      tot += Number(i.amount) || 0;
+    }
+    return tot;
+  }
+
+  function groupCosts(start, end) {
+    const s = toMs(start), e = toMs(end);
+    const out = Object.fromEntries(CATS.map(c => [c, 0]));
+    for (const c of costs) {
+      const m = toMs(c.date); if (isNaN(m) || m < s || m > e) continue;
+      const amt = Number(c.amount) || 0;
+      const cat = (c.category || '').toLowerCase();
+      if (cat.includes('materie prime') || cat.includes('raw materials')) out['Materie prime'] += amt;
+      else if (cat.includes('stipendi') || cat.includes('tfr') || cat.includes('salary')) out['Stipendi + TFR'] += amt;
+      else if (cat.includes('affitto')) out['Affitto'] += amt;
+      else if (cat.includes('energia elettrica') || cat.includes('electricity')) out['Energia elettrica'] += amt;
+      else out['Altri costi'] += amt;
+    }
+    return out;
+  }
+
+  function render(start, end, incomeCat) {
+    const sums        = groupCosts(start, end);
+    const incomeTotal = sumIncome(start, end, incomeCat);
+    const rawSeries   = CATS.map(k => sums[k]);
+    const costTotal   = rawSeries.reduce((a,b) => a + b, 0);
+
+    if (window.incChart) { try { window.incChart.destroy(); } catch(_){} window.incChart = null; }
+
+    if (!incomeTotal) {
+      $el.innerHTML = '<div class="text-muted py-3">Nessun ricavo nel periodo selezionato.</div>';
+      return;
+    }
+
+    // slices = cost amounts; percentages = cost / total income
+    const series = rawSeries.map(v => v > 0 ? v : 0.0001);
+    const colors = rawSeries.map((v,i) => v === 0 ? zeroColor : baseColors[i]);
+
+    window.incChart = new ApexCharts($el, {
+      chart: { type: 'donut', height: 300 },
+      series,
+      labels: CATS,
+      colors,
+      legend: { position: 'right', labels: { colors: '#000' } },
+
+      tooltip: {
+        y: {
+          formatter: (val) => {
+            const pct = (val / incomeTotal) * 100;
+            return (val > incomeTotal)
+              ? `€ ${val.toLocaleString(undefined,{minimumFractionDigits:2})}`
+              : `€ ${val.toLocaleString(undefined,{minimumFractionDigits:2})} · ${pct.toFixed(1)}% dei ricavi`;
+          }
+        }
+      },
+
+      plotOptions: {
+        pie: {
+          donut: {
+            size: '70%',
+            labels: {
+              show: true,
+              name: { show: false },
+              value: {
+                show: true,
+                formatter: () => `€ ${incomeTotal.toLocaleString(undefined,{minimumFractionDigits:2})}`, // center = income
+                style: { fontSize: '18px', fontWeight: 700, color: '#000' }
+              },
+              total: {
+                show: true,
+                label: 'Netto',
+                formatter: () => `€ ${(incomeTotal - costTotal).toLocaleString(undefined,{minimumFractionDigits:2})}`,
+                style: { fontSize: '13px', fontWeight: 600, color: '#000' }
+              }
             }
+          }
+        }
+      },
 
-            function renderIncidence(start, end) {
-                const {
-                    totalInc,
-                    sums,
-                    net
-                } = calcIncidence(start, end);
-                const rawSeries = CATS.map(cat => sums[cat]);
-                const series = sanitize(rawSeries);
-                const colors = rawSeries.map((v, i) => v === 0 ? zeroColor : baseColors[i]);
+      dataLabels: {
+        enabled: true,
+        formatter: (_ignoredPercent, opts) => {
+          const val = rawSeries[opts.seriesIndex] || 0;
+          if (val > incomeTotal) return `€ ${Number(val).toLocaleString()}`; // hide % when > income
+          const pct = (val / incomeTotal) * 100;
+          return `€ ${Number(val).toLocaleString()} (${pct.toFixed(1)}%)`;
+        },
+        style: { colors: ['#000'] }
+      },
 
-                if (window.incChart) window.incChart.destroy();
+      responsive: [{ breakpoint: 768, options: { legend: { position: 'bottom' } } }]
+    });
 
-                window.incChart = new ApexCharts(document.querySelector('#incomeCostDonut'), {
-                    chart: {
-                        type: 'donut',
-                        height: 300
-                    },
-                    series,
-                    labels: CATS,
-                    colors,
-                    plotOptions: {
-                        pie: {
-                            donut: {
-                                labels: {
-                                    show: true,
-                                    name: {
-                                        show: false
-                                    },
-                                    value: {
-                                        show: true,
-                                        formatter: () => `${totalInc.toLocaleString()}€`,
-                                        offsetY: 8,
-                                        style: {
-                                            fontSize: '20px',
-                                            fontWeight: '700',
-                                            color: '#000'
-                                        }
-                                    },
-                                    total: {
-                                        show: true,
-                                        label: 'Net',
-                                        formatter: () => `${net.toLocaleString()}€`,
-                                        style: {
-                                            fontSize: '14px',
-                                            fontWeight: '600',
-                                            color: '#000'
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    dataLabels: {
-                        formatter: (pct, o) => {
-                            const val = o.w.config.series[o.seriesIndex];
-                            return `${val.toLocaleString()}€ (${pct.toFixed(1)}%)`;
-                        },
-                        style: {
-                            colors: ['#000']
-                        }
-                    },
-                    legend: {
-                        labels: {
-                            colors: '#000'
-                        }
-                    },
-                    tooltip: {
-                        y: {
-                            formatter: v => `${v.toLocaleString()}€`
-                        }
-                    }
-                });
-                window.incChart.render();
-            }
+    window.incChart.render();
+  }
 
-            const allDates = incomes.map(i => i.date).sort();
-            const d0 = allDates[0] || new Date().toISOString().slice(0, 10);
-            const d1 = allDates.at(-1) || d0;
+  // initial range from income data
+  const dates = incomes.map(i => i.date).filter(Boolean).sort();
+  const d0 = dates[0] || new Date().toISOString().slice(0,10);
+  const d1 = dates[dates.length-1] || d0;
+  if ($incStart) $incStart.value ||= d0;
+  if ($incEnd)   $incEnd.value   ||= d1;
 
-            const $incStart = document.getElementById('incStart');
-            const $incEnd = document.getElementById('incEnd');
-            if ($incStart && $incEnd) {
-                $incStart.value = d0;
-                $incEnd.value = d1;
-                renderIncidence(d0, d1);
+  render($incStart?.value, $incEnd?.value, $incomeSel.value);
 
-                const $incBtn = document.getElementById('incFilter');
-                if ($incBtn) {
-                    $incBtn.addEventListener('click', () => {
-                        const s = $incStart.value,
-                            e = $incEnd.value;
-                        if (s && e) renderIncidence(s, e);
-                    });
-                }
-            }
-        });
-   
+  $incBtn?.addEventListener('click', e => {
+    e.preventDefault();
+    render($incStart.value, $incEnd.value, $incomeSel.value);
+  });
+  $incomeSel.addEventListener('change', () => render($incStart.value, $incEnd.value, $incomeSel.value));
+});
+
+
         document.addEventListener('DOMContentLoaded', function() {
             const $range = document.getElementById('globalRange');
             const $start = document.getElementById('globalStart');
@@ -1814,7 +1940,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
             }
         });
-     
+
         document.addEventListener('DOMContentLoaded', function() {
             // --- Incassi per Categoria ---
             const incomesRaw = @json($fullIncomeData ?? []);
@@ -1868,19 +1994,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     series,
                     labels,
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            colors: '#000'
+                        } // legend text black
                     },
                     tooltip: {
                         y: {
                             formatter: v => `€${v.toLocaleString()}`
                         }
                     },
+
+                    // data labels inside slices (value + percent)
                     dataLabels: {
-                        formatter: (p, o) => {
-                            const v = o.w.config.series[o.seriesIndex];
-                            return `${v.toLocaleString()}€ (${p.toFixed(1)}%)`;
+                        formatter: (percent, opts) => {
+                            const val = opts.w.config.series[opts.seriesIndex];
+                            return `${val.toLocaleString()}€ (${percent.toFixed(1)}%)`;
+                        },
+                        style: {
+                            colors: ['#000'] // force black
                         }
                     },
+
                     plotOptions: {
                         pie: {
                             donut: {
@@ -1888,23 +2023,38 @@ document.addEventListener('DOMContentLoaded', function () {
                                 labels: {
                                     show: true,
                                     name: {
-                                        show: true
+                                        show: true,
+                                        style: {
+                                            color: '#000',
+                                            fontSize: '13px'
+                                        }
                                     },
                                     value: {
                                         show: true,
+                                        style: {
+                                            color: '#000',
+                                            fontSize: '14px',
+                                            fontWeight: '600'
+                                        },
                                         formatter: val => `€${Number(val).toLocaleString()}`
                                     },
                                     total: {
                                         show: true,
                                         label: 'Total',
                                         formatter: () =>
-                                            `€${total.toLocaleString(undefined,{minimumFractionDigits:2})}`
+                                            `€${total.toLocaleString(undefined,{minimumFractionDigits:2})}`,
+                                        style: {
+                                            color: '#000',
+                                            fontSize: '16px',
+                                            fontWeight: '700'
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 });
+
                 window.revChart.render();
             }
 
@@ -1977,13 +2127,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     series,
                     labels,
                     legend: {
-                        position: 'right'
+                        position: 'right',
+                        labels: {
+                            colors: '#000'
+                        } // legend text black
                     },
                     tooltip: {
                         y: {
                             formatter: val => '€ ' + Number(val).toFixed(2)
                         }
                     },
+
+                    dataLabels: {
+                        formatter: (percent, opts) => {
+                            const val = opts.w.config.series[opts.seriesIndex];
+                            return `€ ${Number(val).toFixed(2)} (${percent.toFixed(1)}%)`;
+                        },
+                        style: {
+                            colors: ['#000'] // <-- black
+                        }
+                    },
+
                     plotOptions: {
                         pie: {
                             donut: {
@@ -1993,16 +2157,28 @@ document.addEventListener('DOMContentLoaded', function () {
                                     total: {
                                         show: true,
                                         label: 'Totale',
-                                        formatter: () => '€ ' + total.toFixed(2)
+                                        formatter: () => '€ ' + total.toFixed(2),
+                                        style: {
+                                            color: '#000'
+                                        } // total color
                                     },
                                     value: {
-                                        formatter: val => '€ ' + Number(val).toFixed(2)
+                                        formatter: val => '€ ' + Number(val).toFixed(2),
+                                        style: {
+                                            color: '#000'
+                                        }
+                                    },
+                                    name: {
+                                        style: {
+                                            color: '#000'
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 });
+
                 window.costCatChart.render();
             }
 

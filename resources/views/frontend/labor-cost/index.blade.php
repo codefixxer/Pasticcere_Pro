@@ -4,20 +4,24 @@
 
 @php
   $lc = optional($laborCost);
+
+  // ✅ Updated labels
   $ALL_BUCKETS = [
     'electricity'      => 'Elettricità (€)',
     'ingredients'      => 'Materie Prime (€)',
     'leasing_loan'     => 'Affitto/Mutuo/Prestito (€)',
     'packaging'        => 'Imballaggio (€)',
-    'owner'            => 'Proprietario (€)',
+    'owner'            => 'Stipendio Titolari (€)',          // 🔴 Red
     'van_rental'       => 'Noleggio Furgone (€)',
-    'chefs'            => 'Pasticceri (€)',
-    'shop_assistants'  => 'Addetti alla Vendita (€)',
+    'chefs'            => 'Stipendio Operatori (€)',         // 🟢 Green
+    'shop_assistants'  => 'Stipendio Addetti Vendita (€)',   // 🟣 Purple
     'other_salaries'   => 'Altri Stipendi (€)',
     'taxes'            => 'Tasse (€)',
     'other_categories' => 'Altre Categorie (€)',
     'driver_salary'    => 'Stipendi fornitura esterna (€)',
   ];
+
+  // shared-only keys unchanged
   $SHARED_ONLY = [
     'electricity','leasing_loan','owner','van_rental','taxes','shop_assistants',
   ];
@@ -66,7 +70,7 @@
         @if(isset($departments) && $departments->count())
           <div class="row g-3 mb-3">
             <div class="col-md-6">
-              <label class="form-label">Ambito</label>
+              <label class="form-label">Reparto</label>
               <select name="department_id" id="departmentSelect" class="form-select">
                 <option value="">— Condiviso per tutto il gruppo —</option>
                 @foreach ($departments as $dept)
@@ -77,7 +81,7 @@
                 @endforeach
               </select>
               <small class="text-muted">
-                Scegli <em>Condiviso</em> per modificare i costi globali; scegli un reparto per salvare un override.
+                Scegli <em>Condiviso</em> per modificare i costi globali; scegli un reparto per salvare un <strong>reparto singolo</strong>. {{-- “Override: reparto singolo” --}}
               </small>
             </div>
 
@@ -91,82 +95,77 @@
                        value="{{ old('incidence_pct', optional($lc->department)->share_percent) }}">
                 <span class="input-group-text">%</span>
               </div>
-              <small class="text-muted">
-                Se vuoto: 100%.
-              </small>
+              <small class="text-muted">Se vuoto: 100%.</small>
             </div>
           </div>
           <hr>
         @endif
 
-<div class="row g-3 mb-3">
-  <div class="col-md-6">
-    <label class="form-label">Giorni di Apertura (questo mese)</label>
-    <input type="number" id="openDays" name="opening_days" class="form-control" min="1"
-           value="{{ old('opening_days', $lc->opening_days ?? 22) }}">
-  </div>
-  <div class="col-md-6">
-    <label class="form-label">Ore di Apertura / Giorno</label>
-    <input type="number" id="hoursPerDay" name="hours_per_day" class="form-control" min="0"
-           value="{{ old('hours_per_day', $lc->hours_per_day ?? 8) }}">
-  </div>
-</div>
-<hr>
-
-<div class="mb-3">
-  <div class="d-flex align-items-center justify-content-between mb-2">
-    <h6 class="mb-0">Voci di Reparto</h6>
-    <small class="text-muted">Specifiche del reparto</small>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-md-4">
-      <label class="form-label">Numero di Pasticceri</label>
-      <div class="input-group">
-        <input type="number" id="numChefs" name="num_chefs" class="form-control"
-               min="0.1" step="0.1"
-               value="{{ old('num_chefs', $lc->num_chefs ?? 1) }}">
-      </div>
-      <small class="text-muted">Specifico del reparto</small>
-    </div>
-
-    @foreach ($ALL_BUCKETS as $field => $label)
-      @continue(in_array($field, $SHARED_ONLY, true))
-      @php
-        $isShared = false;
-        $value = old($field, $lc->$field ?? 0);
-        $sharedValue = optional($sharedCost)->$field ?? 0;
-      @endphp
-      <div class="col-md-4">
-        <label class="form-label">{{ $label }}</label>
-        <div class="input-group">
-          <input type="number" step="0.01"
-                 id="{{ $field }}"
-                 name="{{ $field }}"
-                 class="form-control cost-input dept-bucket"
-                 data-shared="0"
-                 value="{{ $value }}"
-                 data-shared-default="{{ $sharedValue }}">
-          <span class="input-group-text">€</span>
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Giorni di Apertura (questo mese)</label>
+            <input type="number" id="openDays" name="opening_days" class="form-control" min="1"
+                   value="{{ old('opening_days', $lc->opening_days ?? 22) }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Ore di Apertura / Giorno</label>
+            <input type="number" id="hoursPerDay" name="hours_per_day" class="form-control" min="0"
+                   value="{{ old('hours_per_day', $lc->hours_per_day ?? 8) }}">
+          </div>
         </div>
-      </div>
-    @endforeach
+        <hr>
 
-  </div>
-</div>
+        <div class="mb-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <h6 class="mb-0">Voci di Reparto</h6>
+            <small class="text-muted">Specifiche del reparto</small>
+          </div>
+
+          <div class="row g-3">
+            {{-- 🔵 Blue --}}
+            <div class="col-md-4">
+              <label class="form-label">Numero Operatori</label>
+              <div class="input-group">
+                <input type="number" id="numChefs" name="num_chefs" class="form-control"
+                       min="0.1" step="0.1"
+                       value="{{ old('num_chefs', $lc->num_chefs ?? 1) }}">
+              </div>
+              <small class="text-muted">Specifico del reparto</small>
+            </div>
+
+            @foreach ($ALL_BUCKETS as $field => $label)
+              @continue(in_array($field, $SHARED_ONLY, true))
+              @php
+                $value = old($field, $lc->$field ?? 0);
+                $sharedValue = optional($sharedCost)->$field ?? 0;
+              @endphp
+              <div class="col-md-4">
+                <label class="form-label">{{ $label }}</label>
+                <div class="input-group">
+                  <input type="number" step="0.01"
+                         id="{{ $field }}"
+                         name="{{ $field }}"
+                         class="form-control cost-input dept-bucket"
+                         data-shared="0"
+                         value="{{ $value }}"
+                         data-shared-default="{{ $sharedValue }}">
+                  <span class="input-group-text">€</span>
+                </div>
+              </div>
+            @endforeach
+          </div>
+        </div>
 
         <div class="mb-3 p-3 border rounded-3 bg-light-subtle">
           <div class="d-flex align-items-center justify-content-between mb-2">
             <h6 class="mb-0">Voci Condivise <small class="text-secondary">(comuni al gruppo)</small></h6>
-            <small class="text-muted">
-              Modificabili solo in ambito Condiviso.
-            </small>
+            <small class="text-muted">Modificabili solo in Reparto Condiviso.</small>
           </div>
+
           <div class="row g-3">
             @foreach ($ALL_BUCKETS as $field => $label)
               @continue(!in_array($field, $SHARED_ONLY, true))
               @php
-                $isShared = true;
                 $value = old($field, $lc->$field ?? 0);
                 $sharedValue = optional($sharedCost)->$field ?? 0;
               @endphp
@@ -209,9 +208,10 @@
           </div>
         </div>
 
+        {{-- 🟧 Orange & ⚫ Black --}}
         <div class="row g-3 mb-3">
           <div class="col-md-6">
-            <label class="form-label">Costo del lavoro al minuto (Interno)</label>
+            <label class="form-label">Costo del Lavoro (Negozio)</label>
             <div class="input-group">
               <input type="text" id="shopCostPerMin" name="shop_cost_per_min" class="form-control bg-light" readonly
                      value="{{ old('shop_cost_per_min', $lc->shop_cost_per_min) }}">
@@ -219,7 +219,7 @@
             </div>
           </div>
           <div class="col-md-6">
-            <label class="form-label">Costo del lavoro al minuto (Esterno)</label>
+            <label class="form-label">Costo del Lavoro (Forniture Esterne)</label>
             <div class="input-group">
               <input type="text" id="externalCostPerMin" name="external_cost_per_min" class="form-control bg-light" readonly
                      value="{{ old('external_cost_per_min', $lc->external_cost_per_min) }}">
@@ -246,18 +246,18 @@
   <div class="card mt-4 shadow-sm">
     <div class="card-header d-flex align-items-center" style="background-color:#041930; color:#e2ae76;">
       <i class="bi bi-list-check fs-5 me-2"></i>
-      <h5 class="mb-0 fw-bold">Tutti i Costo Lavoro (questo gruppo)</h5>
+      <h5 class="mb-0 fw-bold">Tutti i Costi del Lavoro (questo gruppo)</h5> {{-- small grammar fix --}}
     </div>
     <div class="card-body">
       <div class="table-responsive">
-        <table  data-page-length="25"class="table table-hover align-middle">
+        <table data-page-length="25" class="table table-hover align-middle">
           <thead>
             <tr>
               <th style="width:22%">Reparto</th>
               <th class="text-center">Incidenza (%)</th>
               <th class="text-center">Giorni</th>
               <th class="text-center">Ore/gg</th>
-              <th class="text-center">Chef</th>
+              <th class="text-center">Operatori</th> {{-- was: Chef --}}
               <th class="text-end">€/min (Interno)</th>
               <th class="text-end">€/min (Esterno)</th>
               <th class="text-end">Aggiornato</th>
@@ -270,7 +270,7 @@
               <tr>
                 <td>
                   @if ($row->department_id)
-                    <span class="badge bg-info-subtle text-dark me-1">Override</span>
+                    <span class="badge bg-info-subtle text-dark me-1">Reparto singolo</span> {{-- “Override” → --}}
                     {{ $dept?->name ?? '—' }}
                   @else
                     <span class="badge bg-primary-subtle text-dark me-1">Condiviso</span>
@@ -312,7 +312,8 @@
       </div>
     </div>
   </div>
-@include('frontend.labor-cost.quick-help')
+
+  @include('frontend.labor-cost.quick-help')
 
 </div>
 
@@ -339,21 +340,26 @@
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   const byId = id => document.getElementById(id);
+
   const deptSelect   = byId('departmentSelect');
   const incidencePct = byId('incidencePct');
   const numChefs     = byId('numChefs');
   const openDays     = byId('openDays');
   const hoursPerDay  = byId('hoursPerDay');
   const editingId    = byId('editing_id');
+
   const costInputs  = Array.from(document.querySelectorAll('.cost-input'));
   const shopEl      = byId('shopCostPerMin');
   const externalEl  = byId('externalCostPerMin');
+
   const SHARED_KEYS = ['electricity','leasing_loan','owner','van_rental','taxes','shop_assistants'];
+
   const FIELD_NAMES = [
     'num_chefs','opening_days','hours_per_day',
     'electricity','ingredients','leasing_loan','packaging','owner','van_rental','chefs',
     'shop_assistants','other_salaries','taxes','other_categories','driver_salary'
   ];
+
   const getSharedDefaults = () => {
     const map = {};
     costInputs.forEach(el => {
@@ -364,7 +370,9 @@ document.addEventListener('DOMContentLoaded', function(){
     return map;
   };
   const SHARED_DEFAULTS = getSharedDefaults();
+
   const isDeptSelected = () => !!(deptSelect && deptSelect.value);
+
   function applySharedLock(){
     const deptMode = isDeptSelected();
     costInputs.forEach(el => {
@@ -378,50 +386,65 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     recalcRates();
   }
+
   function recalcRates(){
     const days  = Math.max(1, parseInt(openDays.value)||1);
     const mins  = days * (parseFloat(hoursPerDay.value)||0) * 60;
     const chefs = Math.max(0.1, parseFloat(numChefs.value)||0.1);
+
     const deptOnly = costInputs.reduce((sum, el) => sum + (el.disabled ? 0 : (parseFloat(el.value)||0)), 0);
+
     let sharedShare = 0;
     if (isDeptSelected()) {
       const share = Math.max(0, parseFloat(incidencePct.value || '100')) / 100;
       SHARED_KEYS.forEach(k => { sharedShare += (SHARED_DEFAULTS[k] || 0) * share; });
     }
+
     const total = deptOnly + sharedShare;
+
     const getEnableVal = key => {
       const el = byId(key);
       if (!el) return 0;
       if (isDeptSelected() && SHARED_KEYS.includes(key)) return 0;
       return parseFloat(el.value)||0;
     };
+
     const ing = getEnableVal('ingredients'),
           van = getEnableVal('van_rental'),
           drv = getEnableVal('driver_salary');
+
     const saShare = isDeptSelected()
       ? (SHARED_DEFAULTS['shop_assistants'] || 0) * (Math.max(0, parseFloat(incidencePct.value || '100')) / 100)
       : getEnableVal('shop_assistants');
+
     const shopOfficial     = mins > 0 ? (total - ing - van - drv) / mins / chefs : 0;
     const externalOfficial = mins > 0 ? (total - ing - saShare) / mins / chefs : 0;
+
+    // values remain calculated per minute; labels above changed as requested
     shopEl.value     = (shopOfficial / 3 * 4).toFixed(4);
     externalEl.value = (externalOfficial / 3 * 4).toFixed(4);
   }
+
   async function fetchAndFill(deptId){
     const url = new URL('{{ route('labor-cost.show', 0) }}', window.location.origin);
     if (deptId) url.searchParams.set('department_id', deptId);
+
     try {
       const res = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
       const data = await res.json();
+
       byId('numChefs').value    = data.num_chefs ?? 1;
       byId('openDays').value    = data.opening_days ?? 22;
       byId('hoursPerDay').value = data.hours_per_day ?? 8;
       incidencePct.value        = (data.incidence_pct ?? '');
+
       FIELD_NAMES.forEach(f => {
         const el = byId(f);
         if (el && f !== 'num_chefs' && f !== 'opening_days' && f !== 'hours_per_day') {
           el.value = (data[f] ?? 0);
         }
       });
+
       editingId.value = data.id || '';
       applySharedLock();
       recalcRates();
@@ -429,6 +452,7 @@ document.addEventListener('DOMContentLoaded', function(){
       console.error(e);
     }
   }
+
   [deptSelect, incidencePct, numChefs, openDays, hoursPerDay, ...costInputs].forEach(el => {
     if (!el) return;
     el.addEventListener('input', () => {
@@ -440,11 +464,14 @@ document.addEventListener('DOMContentLoaded', function(){
       recalcRates();
     });
   });
+
   applySharedLock();
   recalcRates();
+
   if (!'{{ $editingId ?? "" }}' && deptSelect && deptSelect.value) {
     fetchAndFill(deptSelect.value);
   }
+
   if (window.location.hash === '#laborCostForm') {
     document.getElementById('laborCostForm')?.scrollIntoView({behavior:'smooth'});
   }

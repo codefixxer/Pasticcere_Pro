@@ -410,98 +410,44 @@
 
                 {{-- Management --}}
                 {{-- Management --}}
-                @canany(['recipe categories', 'clients', 'cost categories', 'departments', 'pastry chefs', 'equipment',
-                    'income categories'])
-                    <li class="dropdown">
-                        <a href="javascript:void(0)" class="d-flex align-items-center">
-                            <iconify-icon icon="mdi:account-cog-outline" class="menu-icon"
-                                style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                            <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">
-                                Gestione Categorie
-                            </span>
-                            <iconify-icon icon="" class="menu-icon ms-auto"
-                                style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                        </a>
+              @php
+  $menuItems = [
+    ['perm'=>'equipment',       'route'=>'equipment.index',       'icon'=>'mdi:tools',                 'label'=>'Attrezzature'],
+    ['perm'=>'income categories','route'=>'income-categories.index','icon'=>'mdi:cash-multiple',          'label'=>'Categorie Entrate'],
+    ['perm'=>'cost categories',  'route'=>'cost_categories.index', 'icon'=>'mdi:tag-multiple',           'label'=>'Categorie di Costo'],
+    ['perm'=>'recipe categories','route'=>'recipe-categories.index','icon'=>'mdi:category-outline',      'label'=>'Categorie Ricette'],
+    ['perm'=>'clients',          'route'=>'clients.index',         'icon'=>'mdi:account-multiple-outline','label'=>'Clienti'],
+    ['perm'=>'pastry chefs',     'route'=>'pastry-chefs.index',    'icon'=>'mdi:chef-hat',               'label'=>'Pasticceri'],
+    ['perm'=>'departments',      'route'=>'departments.index',     'icon'=>'mdi:office-building-marker-outline','label'=>'Reparti'],
+  ];
 
-                        <ul class="sidebar-submenu">
-                            @can('recipe categories')
-                                <li>
-                                    <a href="{{ route('recipe-categories.index') }}" class="d-flex align-items-center">
-                                        <iconify-icon icon="mdi:category-outline" class="menu-icon"
-                                            style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                                        <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">Categorie
-                                            Ricette</span>
-                                    </a>
-                                </li>
-                            @endcan
+  usort($menuItems, function($a,$b){
+    return strcmp(mb_strtolower($a['label']), mb_strtolower($b['label']));
+  });
+@endphp
 
-                            @can('clients')
-                                <li>
-                                    <a href="{{ route('clients.index') }}" class="d-flex align-items-center">
-                                        <iconify-icon icon="mdi:account-multiple-outline" class="menu-icon"
-                                            style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                                        <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">Clienti</span>
-                                    </a>
-                                </li>
-                            @endcan
+@canany(['recipe categories', 'clients', 'cost categories', 'departments', 'pastry chefs', 'equipment', 'income categories'])
+<li class="dropdown">
+  <a href="javascript:void(0)" class="d-flex align-items-center">
+    <iconify-icon icon="mdi:account-cog-outline" class="menu-icon" style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
+    <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">Gestione Categorie</span>
+    <iconify-icon icon="" class="menu-icon ms-auto" style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
+  </a>
 
-                            @can('cost categories')
-                                <li>
-                                    <a href="{{ route('cost_categories.index') }}" class="d-flex align-items-center">
-                                        <iconify-icon icon="mdi:tag-multiple" class="menu-icon"
-                                            style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                                        <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">Categorie di
-                                            Costo</span>
-                                    </a>
-                                </li>
-                            @endcan
-
-                            @can('departments')
-                                <li>
-                                    <a href="{{ route('departments.index') }}" class="d-flex align-items-center">
-                                        <iconify-icon icon="mdi:office-building-marker-outline" class="menu-icon"
-                                            style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                                        <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">Reparti</span>
-                                    </a>
-                                </li>
-                            @endcan
-
-                            @can('pastry chefs')
-                                <li>
-                                    <a href="{{ route('pastry-chefs.index') }}" class="d-flex align-items-center">
-                                        <iconify-icon icon="mdi:chef-hat" class="menu-icon"
-                                            style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                                        <span class="ms-2"
-                                            style="color:#e2ae76; font-size:16px; line-height:1;">Pasticceri</span>
-                                    </a>
-                                </li>
-                            @endcan
-
-                            @can('equipment')
-                                <li>
-                                    <a href="{{ route('equipment.index') }}" class="d-flex align-items-center">
-                                        <iconify-icon icon="mdi:tools" class="menu-icon" width="24" height="24"
-                                            style="color:#e2ae76;"></iconify-icon>
-                                        <span class="ms-2"
-                                            style="color:#e2ae76; font-size:16px; line-height:1;">Attrezzature</span>
-                                    </a>
-                                </li>
-                            @endcan
-
-                            {{-- NEW: Income Categories --}}
-                            @can('income categories')
-                                <li>
-                                    <a href="{{ route('income-categories.index') }}" class="d-flex align-items-center">
-                                        <iconify-icon icon="mdi:cash-multiple" class="menu-icon"
-                                            style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
-                                        <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">Categorie
-                                            Entrate</span>
-                                    </a>
-                                </li>
-                            @endcan
-                        </ul>
-                    </li>
-                @endcanany
+  <ul class="sidebar-submenu">
+    @foreach($menuItems as $it)
+      @can($it['perm'])
+        <li>
+          <a href="{{ route($it['route']) }}" class="d-flex align-items-center">
+            <iconify-icon icon="{{ $it['icon'] }}" class="menu-icon" style="width:1.5em; height:1.5em; color:#e2ae76;"></iconify-icon>
+            <span class="ms-2" style="color:#e2ae76; font-size:16px; line-height:1;">{{ $it['label'] }}</span>
+          </a>
+        </li>
+      @endcan
+    @endforeach
+  </ul>
+</li>
+@endcanany
 
 
 

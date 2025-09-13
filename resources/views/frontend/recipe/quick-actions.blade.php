@@ -117,7 +117,7 @@
         <ul class="mb-0">
           <li>Inserisci ingredienti in <strong>grammi</strong> (l’app calcola € con il listino €/kg).</li>
           <li>Seleziona <strong>reparto</strong> per usare la tariffa corretta €/min.</li>
-          <li>Imposta imballaggio (per kg o per pezzo) in base alla modalità di vendita.</li>
+          <li>Imposta imballaggio per dose (se a pezzo) o kg</li>
           <li>Controlla il <strong>margine</strong> (netto, prima dell’IVA) e regola il prezzo se serve.</li>
         </ul>
       </div>

@@ -16,9 +16,7 @@
     <button class="scroll-arrow right" type="button" aria-label="Scorri a destra"><i class="bi bi-chevron-right"></i></button>
 
     <div class="scroller" tabindex="0">
-        <button type="button" class="chip chip--cta" data-bs-toggle="modal" data-bs-target="#lcHowWorks">
-            <span class="icon-badge"><i class="bi bi-speedometer2"></i></span>€/min: come si calcola<span class="shine"></span>
-        </button>
+       
 
         <button type="button" class="chip" data-bs-toggle="modal" data-bs-target="#lcBuckets">
             <span class="icon-badge"><i class="bi bi-diagram-3"></i></span>Voci: Condivise vs Reparto<span class="shine"></span>

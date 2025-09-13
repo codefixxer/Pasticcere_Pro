@@ -31,22 +31,20 @@
 
 <div class="container dashboard-container">
 
-  <!-- Header + Year/Month Selector -->
+  <!-- Header + Year Selector -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="page-header-custom mb-0">
       <i class="bi bi-speedometer2 me-2"></i>
       {{ Carbon::create($year, $month, 1)->translatedFormat('F Y') }}
     </h4>
     <div class="d-flex">
-      <select id="yearSelector" class="form-select form-select-sm me-2 w-auto">
+      <select id="yearSelector" class="form-select form-select-sm w-auto">
         @foreach($availableYears as $availableYear)
           <option value="{{ $availableYear }}" {{ $availableYear == $year ? 'selected' : '' }}>
             {{ $availableYear }}
           </option>
         @endforeach
       </select>
-      <input id="monthSelector" type="month" class="form-select form-select-sm w-auto"
-             value="{{ sprintf('%04d-%02d',$year,$month) }}">
     </div>
   </div>
 
@@ -219,11 +217,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const csrf        = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
   const yearSelector  = document.getElementById('yearSelector');
-  const monthSelector = document.getElementById('monthSelector');
 
-  function navigateTo(year, month){ window.location.href = `${baseUrl}?y=${year}&m=${month}`; }
-  yearSelector?.addEventListener('change', function(){ navigateTo(this.value, monthSelector.value.split('-')[1]); });
-  monthSelector?.addEventListener('change', function(){ const [y,m]=this.value.split('-'); navigateTo(y,m); });
+  function navigateTo(year, month){
+    window.location.href = `${baseUrl}?y=${year}&m=${month}`;
+  }
+
+  // Year change keeps the same month
+  yearSelector?.addEventListener('change', function(){
+    navigateTo(this.value, {{ $month }});
+  });
 
   const n2   = v => (isFinite(+v) ? (+v).toFixed(2) : '0.00');
   const euro = v => `€${n2(v)}`;

@@ -2,8 +2,18 @@
 
 return [
 
+    /*
+    |--------------------------------------------------------------------------
+    | Default Filesystem Disk
+    |--------------------------------------------------------------------------
+    */
     'default' => env('FILESYSTEM_DISK', 'local'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Filesystem Disks
+    |--------------------------------------------------------------------------
+    */
     'disks' => [
 
         'local' => [
@@ -16,7 +26,8 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // ✅ store files directly in public/storage
+            'root' => public_path('storage'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
@@ -38,8 +49,16 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Symbolic Links
+    |--------------------------------------------------------------------------
+    | Normally, Laravel uses this to create "public/storage" → "storage/app/public".
+    | But since Hostinger blocks symlink(), we won't use it anymore.
+    */
     'links' => [
-        public_path('storage') => storage_path('app/public'),
+        // You can leave this empty, or comment it out since we don’t rely on symlink.
+        // public_path('storage') => storage_path('app/public'),
     ],
 
 ];
