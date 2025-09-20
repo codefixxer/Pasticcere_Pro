@@ -1,0 +1,30 @@
+---
+globs: .php,.blade.php
+alwaysApply: false
+---
+• App architecture:
+  - Controllers thin → call Services; Services use Repositories (no DB in controllers).
+  - Requests: Validate with FormRequest classes.
+  - Resources: Use API Resources for responses (never return models directly).
+  - Jobs/Events/Listeners for async or cross-cutting work.
+• Routing: API routes in routes/api.php; prefix with /v1; use route model binding; version with dedicated controllers.
+• Eloquent: No unguarded mass assign; factories/seeders for test data; soft deletes where applicable.
+• Migrations: Forward-only; safe operations for prod (avoid long locks).
+• API auth: Laravel Sanctum (SPA/token) unless project states Passport.
+• Error handling: Exceptions mapped in app/Exceptions; consistent API error shape: {success:false, message, code, errors?}.
+• Testing: Pest preferred; create tests for new endpoints/services; seed minimal fixtures.
+• Frontend: Use Fetch API; handle JSON; show optimistic UI only when safe; CSRF for web routes.
+• Caching: Tag-based Redis; invalidation on write; config cache keys under `cache.keys.*`.
+• App architecture:
+  - Controllers thin → call Services; Services use Repositories (no DB in controllers).
+  - Requests: Validate with FormRequest classes.
+  - Resources: Use API Resources for responses (never return models directly).
+  - Jobs/Events/Listeners for async or cross-cutting work.
+• Routing: API routes in routes/api.php; prefix with /v1; use route model binding; version with dedicated controllers.
+• Eloquent: No unguarded mass assign; factories/seeders for test data; soft deletes where applicable.
+• Migrations: Forward-only; safe operations for prod (avoid long locks).
+• API auth: Laravel Sanctum (SPA/token) unless project states Passport.
+• Error handling: Exceptions mapped in app/Exceptions; consistent API error shape: {success:false, message, code, errors?}.
+• Testing: Pest preferred; create tests for new endpoints/services; seed minimal fixtures.
+• Frontend: Use Fetch API; handle JSON; show optimistic UI only when safe; CSRF for web routes.
+• Caching: Tag-based Redis; invalidation on write; config cache keys under `cache.keys.*`.

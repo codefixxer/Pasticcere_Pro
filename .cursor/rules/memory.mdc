@@ -1,0 +1,14 @@
+---
+alwaysApply: true
+---
+
+• After finishing a task, draft:
+  - /docs/ai-memory/changelog.md: 3–6 bullet summary of what changed and why.
+  - /docs/ai-memory/decisions.md: 1–3 bullets for any architectural decisions.
+  - /docs/ai-memory/todo_next.md: next 3 concrete steps.
+• Keep chats short; load context from memory files instead of pasting large code blocks.
+• After finishing a task, draft:
+  - /docs/ai-memory/changelog.md: 3–6 bullet summary of what changed and why.
+  - /docs/ai-memory/decisions.md: 1–3 bullets for any architectural decisions.
+  - /docs/ai-memory/todo_next.md: next 3 concrete steps.
+• Keep chats short; load context from memory files instead of pasting large code blocks.
